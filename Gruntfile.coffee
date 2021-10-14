@@ -32,7 +32,14 @@ module.exports = (grunt) ->
       butterfly:
         files:
           'butterfly/static/main.js': 'coffees/*.coffee'
-          'butterfly/static/ext.js':  'coffees/ext/*.coffee'
+          'butterfly/static/ext.js':  [
+            'coffees/ext/*.coffee'
+            '!coffees/ext/alarm.coffee'
+            '!coffees/ext/close_confirm.coffee'
+            '!coffees/ext/new_term.coffee'
+            '!coffees/ext/popup.coffee'
+            '!coffees/ext/sessions.coffee'
+          ]
 
     coffeelint:
       butterfly:

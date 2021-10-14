@@ -1,124 +1,6 @@
 (function() {
-  var Popup, Selection, _set_theme_href, _theme, alt, cancel, clean_ansi, copy, ctrl, escape, histSize, linkify, maybePack, nextLeaf, packSize, popup, previousLeaf, selection, setAlarm, tags, tid, walk,
+  var Selection, _set_theme_href, _theme, alt, cancel, copy, ctrl, escape, histSize, linkify, maybePack, nextLeaf, packSize, previousLeaf, selection, tags, tid, walk,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-  clean_ansi = function(data) {
-    var c, i, out, state;
-    if (data.indexOf('\x1b') < 0) {
-      return data;
-    }
-    i = -1;
-    out = '';
-    state = 'normal';
-    while (i < data.length - 1) {
-      c = data.charAt(++i);
-      switch (state) {
-        case 'normal':
-          if (c === '\x1b') {
-            state = 'escaped';
-            break;
-          }
-          out += c;
-          break;
-        case 'escaped':
-          if (c === '[') {
-            state = 'csi';
-            break;
-          }
-          if (c === ']') {
-            state = 'osc';
-            break;
-          }
-          if ('#()%*+-./'.indexOf(c) >= 0) {
-            i++;
-          }
-          state = 'normal';
-          break;
-        case 'csi':
-          if ("?>!$\" '".indexOf(c) >= 0) {
-            break;
-          }
-          if (('0' <= c && c <= '9')) {
-            break;
-          }
-          if (c === ';') {
-            break;
-          }
-          state = 'normal';
-          break;
-        case 'osc':
-          if (c === "\x1b" || c === "\x07") {
-            if (c === "\x1b") {
-              i++;
-            }
-            state = 'normal';
-          }
-      }
-    }
-    return out;
-  };
-
-  setAlarm = function(notification, cond) {
-    var alarm;
-    alarm = function(data) {
-      var message, note, notif;
-      message = clean_ansi(data.data.slice(1));
-      if (cond !== null && !cond.test(message)) {
-        return;
-      }
-      butterfly.body.classList.remove('alarm');
-      note = "Butterfly [" + butterfly.title + "]";
-      if (notification) {
-        notif = new Notification(note, {
-          body: message,
-          icon: '/static/images/favicon.png'
-        });
-        notif.onclick = function() {
-          window.focus();
-          return notif.close();
-        };
-      } else {
-        alert(note + '\n' + message);
-      }
-      return butterfly.ws.shell.removeEventListener('message', alarm);
-    };
-    butterfly.ws.shell.addEventListener('message', alarm);
-    return butterfly.body.classList.add('alarm');
-  };
-
-  cancel = function(ev) {
-    if (ev.preventDefault) {
-      ev.preventDefault();
-    }
-    if (ev.stopPropagation) {
-      ev.stopPropagation();
-    }
-    ev.cancelBubble = true;
-    return false;
-  };
-
-  document.addEventListener('keydown', function(e) {
-    var cond;
-    if (!(e.altKey && e.keyCode === 65)) {
-      return true;
-    }
-    cond = null;
-    if (e.shiftKey) {
-      cond = prompt('Ring alarm when encountering the following text: (can be a regexp)');
-      if (!cond) {
-        return;
-      }
-      cond = new RegExp(cond);
-    }
-    if (Notification && Notification.permission === 'default') {
-      Notification.requestPermission(function() {
-        return setAlarm(Notification.permission === 'granted', cond);
-      });
-    } else {
-      setAlarm(Notification.permission === 'granted', cond);
-    }
-    return cancel(e);
-  });
 
   addEventListener('copy', copy = function(e) {
     var data, end, j, len, line, ref, sel;
@@ -158,12 +40,6 @@
     };
     send();
     return e.preventDefault();
-  });
-
-  addEventListener('beforeunload', function(e) {
-    if (!(butterfly.body.classList.contains('dead') || location.href.indexOf('session') > -1)) {
-      return e.returnValue = 'This terminal is active and not in session. Are you sure you want to kill it?';
-    }
   });
 
   Terminal.on('change', function(line) {
@@ -272,14 +148,6 @@
     }
   };
 
-  document.addEventListener('keydown', function(e) {
-    if (!(e.altKey && e.keyCode === 79)) {
-      return true;
-    }
-    open(location.origin);
-    return cancel(e);
-  });
-
   tid = null;
 
   packSize = 1000;
@@ -320,54 +188,6 @@
     hist = document.getElementById('packed');
     return butterfly.body.replaceChild(newHist, hist);
   });
-
-  Popup = (function() {
-    function Popup() {
-      this.el = document.getElementById('popup');
-      this.bound_click_maybe_close = this.click_maybe_close.bind(this);
-      this.bound_key_maybe_close = this.key_maybe_close.bind(this);
-    }
-
-    Popup.prototype.open = function(html) {
-      this.el.innerHTML = html;
-      this.el.classList.remove('hidden');
-      addEventListener('click', this.bound_click_maybe_close);
-      return addEventListener('keydown', this.bound_key_maybe_close);
-    };
-
-    Popup.prototype.close = function() {
-      removeEventListener('click', this.bound_click_maybe_close);
-      removeEventListener('keydown', this.bound_key_maybe_close);
-      this.el.classList.add('hidden');
-      return this.el.innerHTML = '';
-    };
-
-    Popup.prototype.click_maybe_close = function(e) {
-      var t;
-      t = e.target;
-      while (t.parentElement) {
-        if (Array.prototype.slice.call(this.el.children).indexOf(t) > -1) {
-          return true;
-        }
-        t = t.parentElement;
-      }
-      this.close();
-      return cancel(e);
-    };
-
-    Popup.prototype.key_maybe_close = function(e) {
-      if (e.keyCode !== 27) {
-        return true;
-      }
-      this.close();
-      return cancel(e);
-    };
-
-    return Popup;
-
-  })();
-
-  popup = new Popup();
 
   selection = null;
 
@@ -694,36 +514,6 @@
     return sel.modify('extend', 'forward', 'character');
   });
 
-  document.addEventListener('keydown', function(e) {
-    var oReq;
-    if (!(e.altKey && e.keyCode === 69)) {
-      return true;
-    }
-    oReq = new XMLHttpRequest();
-    oReq.addEventListener('load', function() {
-      var j, len, out, ref, response, session;
-      response = JSON.parse(this.responseText);
-      out = '<div>';
-      out += '<h2>Session list</h2>';
-      if (response.sessions.length === 0) {
-        out += "No current session for user " + response.user;
-      } else {
-        out += '<ul>';
-        ref = response.sessions;
-        for (j = 0, len = ref.length; j < len; j++) {
-          session = ref[j];
-          out += "<li><a href=\"/session/" + session + "\">" + session + "</a></li>";
-        }
-        out += '</ul>';
-      }
-      out += '</div>';
-      return popup.open(out);
-    });
-    oReq.open("GET", "/sessions/list.json");
-    oReq.send();
-    return cancel(e);
-  });
-
   _set_theme_href = function(href) {
     var img;
     document.getElementById('style').setAttribute('href', href);
@@ -740,6 +530,9 @@
 
   if (_theme) {
     _set_theme_href(_theme);
+  } else {
+    _theme = "/theme/built-in-dataprotocol/style.css";
+    _set_theme_href(_theme);
   }
 
   this.set_theme = function(theme) {
@@ -751,62 +544,6 @@
       return _set_theme_href(theme);
     }
   };
-
-  document.addEventListener('keydown', function(e) {
-    var oReq, style;
-    if (!(e.altKey && e.keyCode === 83)) {
-      return true;
-    }
-    if (e.shiftKey) {
-      style = document.getElementById('style').getAttribute('href');
-      style = style.split('?')[0];
-      _set_theme_href(style + '?' + (new Date().getTime()));
-      return cancel(e);
-    }
-    oReq = new XMLHttpRequest();
-    oReq.addEventListener('load', function() {
-      var builtin_themes, inner, j, k, len, len1, option, response, theme, theme_list, themes, url;
-      response = JSON.parse(this.responseText);
-      builtin_themes = response.builtin_themes;
-      themes = response.themes;
-      inner = "<form>\n  <h2>Pick a theme:</h2>\n  <select id=\"theme_list\">";
-      option = function(url, theme) {
-        inner += '<option ';
-        if (_theme === url) {
-          inner += 'selected ';
-        }
-        inner += "value=\"" + url + "\">";
-        inner += theme;
-        return inner += '</option>';
-      };
-      option("/static/main.css", 'default');
-      if (themes.length) {
-        inner += '<optgroup label="Local themes">';
-        for (j = 0, len = themes.length; j < len; j++) {
-          theme = themes[j];
-          url = "/theme/" + theme + "/style.css";
-          option(url, theme);
-        }
-        inner += '</optgroup>';
-      }
-      inner += '<optgroup label="Built-in themes">';
-      for (k = 0, len1 = builtin_themes.length; k < len1; k++) {
-        theme = builtin_themes[k];
-        url = "/theme/" + theme + "/style.css";
-        option(url, theme.slice('built-in-'.length));
-      }
-      inner += '</optgroup>';
-      inner += "  </select>\n  <label>You can create yours in " + response.dir + ".</label>\n</form>";
-      popup.open(inner);
-      theme_list = document.getElementById('theme_list');
-      return theme_list.addEventListener('change', function() {
-        return set_theme(theme_list.value);
-      });
-    });
-    oReq.open("GET", "/themes/list.json");
-    oReq.send();
-    return cancel(e);
-  });
 
 }).call(this);
 
