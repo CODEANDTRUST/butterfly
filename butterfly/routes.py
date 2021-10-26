@@ -136,6 +136,9 @@ class ThemeStatic(Route):
 class KeptAliveWebSocketHandler(tornado.websocket.WebSocketHandler):
     keepalive_timer = None
 
+    def check_origin(self, origin):
+        return True
+
     def open(self, *args, **kwargs):
         self.keepalive_timer = tornado.ioloop.PeriodicCallback(
             self.send_ping, tornado.options.options.keepalive_interval * 1000)
